@@ -35,9 +35,26 @@
       border-radius: 10px;
       font-weight: bold;
     }
-    .baixo { background-color: #006400; }   /* Verde escuro */
-    .medio { background-color: #ffd700; color: #111; }  /* Amarelo ouro */
-    .alto { background-color: #b22222; }    /* Vermelho escuro */
+    .baixo { background-color: #006400; }
+    .medio { background-color: #ffd700; color: #111; }
+    .alto { background-color: #b22222; }
+    .acoes {
+      margin-top: 15px;
+      font-size: 0.9em;
+      color: #ccc;
+    }
+    .historico {
+      margin-top: 30px;
+      font-size: 0.85em;
+      text-align: left;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .historico h2 {
+      color: #ffcc00;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -48,18 +65,21 @@
   <button onclick="verificarJogo()">Analisar</button>
 
   <div id="resultado" class="resultado"></div>
+  <div class="acoes" id="acoes"></div>
+  <div class="historico" id="historico"></div>
 
   <script>
-    function verificarJogo() {
-      const jogo = document.getElementById("jogo").value.toLowerCase();
-      const resultado = document.getElementById("resultado");
+    const listaFraudes = [
+      "speed man", "lucky cash", "cash empire",
+      "click money", "spin money", "win&earn",
+      "win cash now", "play & earn", "dinheiro fácil",
+      "jogo que paga", "fast cash", "game money"
+    ];
 
-      const listaFraudes = [
-        "speed man", "lucky cash", "cash empire",
-        "click money", "spin money", "win&earn",
-        "win cash now", "play & earn", "dinheiro fácil",
-        "jogo que paga", "fast cash", "game money"
-      ];
+    function verificarJogo() {
+      const jogo = document.getElementById("jogo").value.toLowerCase().trim();
+      const resultado = document.getElementById("resultado");
+      const acoes = document.getElementById("acoes");
 
       if (!jogo) {
         resultado.innerHTML = "Por favor, insira o nome ou link de um jogo.";
@@ -67,22 +87,60 @@
         return;
       }
 
+      let risco = "baixo";
+      let mensagem = "BAIXO RISCO: Nenhum sinal de alerta conhecido.";
+      let sugestao = "";
+
       if (listaFraudes.some(nome => jogo.includes(nome))) {
-        resultado.innerHTML = "ALTO RISCO: Este jogo apresenta fortes indícios de fraude.";
-        resultado.className = "resultado alto";
+        risco = "alto";
+        mensagem = "ALTO RISCO: Este jogo apresenta fortes indícios de fraude.";
+        sugestao = "Evite inserir dados pessoais ou fazer pagamentos. Denuncie este jogo!";
       } else if (
         jogo.includes("ganhar dinheiro") || 
         jogo.includes("pagar para sacar") ||
         jogo.includes("cash") || 
         jogo.includes("lucro rápido")
       ) {
-        resultado.innerHTML = "RISCO MÉDIO: Pode conter características suspeitas.";
-        resultado.className = "resultado medio";
-      } else {
-        resultado.innerHTML = "BAIXO RISCO: Nenhum sinal de alerta conhecido.";
-        resultado.className = "resultado baixo";
+        risco = "medio";
+        mensagem = "RISCO MÉDIO: Pode conter características suspeitas.";
+        sugestao = "Pesquise avaliações de usuários antes de usar o jogo.";
       }
+
+      resultado.innerHTML = mensagem;
+      resultado.className = "resultado " + risco;
+      acoes.innerHTML = sugestao;
+
+      salvarHistorico(jogo, risco);
+      mostrarHistorico();
     }
+
+    function salvarHistorico(jogo, risco) {
+      let historico = JSON.parse(localStorage.getItem("historicoJogos")) || [];
+      historico.unshift({ jogo: jogo, risco: risco, data: new Date().toLocaleString() });
+      if (historico.length > 10) historico.pop(); // Limita a 10 entradas
+      localStorage.setItem("historicoJogos", JSON.stringify(historico));
+    }
+
+    function mostrarHistorico() {
+      const container = document.getElementById("historico");
+      const historico = JSON.parse(localStorage.getItem("historicoJogos")) || [];
+
+      if (historico.length === 0) {
+        container.innerHTML = "";
+        return;
+      }
+
+      let html = "<h2>Histórico de Verificações</h2><ul>";
+      historico.forEach(item => {
+        let cor = item.risco === "alto" ? "#f88" : item.risco === "medio" ? "#ffc" : "#8f8";
+        html += `<li style="margin: 4px 0; color: ${cor}">${item.data} – <strong>${item.jogo}</strong> [${item.risco.toUpperCase()}]</li>`;
+      });
+      html += "</ul>";
+      container.innerHTML = html;
+    }
+
+    // Exibir histórico ao carregar
+    window.onload = mostrarHistorico;
   </script>
 
   <p style="margin-top: 40px; font-size: 0.9em; color: #aaa;">
